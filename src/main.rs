@@ -1,5 +1,4 @@
 mod components;
-#[cfg(feature = "server")]
 mod server;
 
 use components::app::App;
