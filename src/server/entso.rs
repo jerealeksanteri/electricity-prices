@@ -22,9 +22,15 @@ use super::{GenerationSource, ServerError};
 
 #[cfg(feature = "server")]
 fn parse_start(s: &str) -> Result<DateTime<Utc>, ServerError> {
+    use chrono::NaiveDateTime;
+    // ENTSO-E emits e.g. "2024-01-01T00:00Z" (no seconds) and sometimes full
+    // RFC3339. Try RFC3339 first, then the minute-precision form (parsed as a
+    // naive datetime and pinned to UTC, since the trailing Z denotes UTC).
     DateTime::parse_from_rfc3339(s)
         .map(|dt| dt.with_timezone(&Utc))
-        .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%dT%H:%MZ").map(|dt| dt.with_timezone(&Utc)))
+        .or_else(|_| {
+            NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%MZ").map(|ndt| ndt.and_utc())
+        })
         .map_err(|_| ServerError::BadTimestamp(s.to_string()))
 }
 
