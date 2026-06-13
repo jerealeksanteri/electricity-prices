@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use super::nav::Nav;
 use super::pages::{grid::Grid, overview::Overview, prices::Prices};
 
-#[derive(Routable, Clone, PartialEq)]
+#[derive(Routable, Clone, Debug, PartialEq)]
 pub enum Route {
     #[layout(Nav)]
     #[route("/")]
@@ -12,6 +12,22 @@ pub enum Route {
     Prices {},
     #[route("/grid")]
     Grid {},
+    #[route("/:..segments")]
+    NotFound { segments: Vec<String> },
+}
+
+#[component]
+fn NotFound(segments: Vec<String>) -> Element {
+    let path = segments.join("/");
+    rsx! {
+        div { class: "flex flex-col items-center justify-center py-20 text-center",
+            h1 { class: "font-display text-5xl font-bold text-ink", "404" }
+            p { class: "mt-4 text-lg text-muted", "Page not found: /{path}" }
+            Link { to: Route::Overview {}, class: "mt-6 rounded-lg bg-aurora-green/10 px-4 py-2 text-sm font-semibold text-aurora-green hover:bg-aurora-green/20 transition",
+                "Back to overview"
+            }
+        }
+    }
 }
 
 const TAILWIND: Asset = asset!("/assets/tailwind.css");

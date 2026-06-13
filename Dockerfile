@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # ---- Build stage ----
-FROM rust:latest AS builder
+FROM rust:bookworm AS builder
 WORKDIR /app
 
 # Install dx as a PREBUILT binary via cargo-binstall (seconds) instead of
