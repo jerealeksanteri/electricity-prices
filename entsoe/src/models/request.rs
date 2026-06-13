@@ -202,7 +202,7 @@ impl FromStr for ContractMarketAgreementType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Domain {
     FI,
     SE1,
