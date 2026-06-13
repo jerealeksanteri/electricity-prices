@@ -9,8 +9,9 @@ use charming::{
 use crate::server::PricePoint;
 use super::{next_id, render_echarts};
 
-fn eur_mwh_to_c_kwh(p: f64) -> f64 {
-    p / 10.0
+/// €/MWh → c/kWh (1 €/MWh = 0.1 c/kWh).
+fn to_c_kwh(eur_mwh: f64) -> f64 {
+    eur_mwh / 10.0
 }
 
 fn bar_color(c_kwh: f64) -> &'static str {
@@ -31,21 +32,22 @@ pub fn PriceChart(data: Vec<PricePoint>) -> Element {
             .iter()
             .map(|p| p.timestamp.format("%a %H:%M").to_string())
             .collect();
-        let values: Vec<f64> = data.iter().map(|p| p.price_eur_mwh).collect();
+        // Plot in c/kWh.
+        let values: Vec<f64> = data.iter().map(|p| to_c_kwh(p.price_eur_mwh)).collect();
         let chart = Chart::new()
             .tooltip(Tooltip::new().trigger(Trigger::Axis))
             .x_axis(Axis::new().type_(AxisType::Category).data(labels.clone()))
             .y_axis(Axis::new().type_(AxisType::Value))
-            .series(Bar::new().data(values.clone()));
+            .series(Bar::new().name("c/kWh").data(values.clone()));
         let mut json = serde_json::to_string(&chart).unwrap_or_else(|_| "{}".into());
         // Recolor each bar by price tier via the serialized series `data` array.
         let colored: Vec<String> = values
             .iter()
             .map(|v| {
                 format!(
-                    "{{\"value\":{},\"itemStyle\":{{\"color\":\"{}\",\"borderRadius\":[3,3,0,0]}}}}",
+                    "{{\"value\":{:.2},\"itemStyle\":{{\"color\":\"{}\",\"borderRadius\":[3,3,0,0]}}}}",
                     v,
-                    bar_color(eur_mwh_to_c_kwh(*v))
+                    bar_color(*v)
                 )
             })
             .collect();

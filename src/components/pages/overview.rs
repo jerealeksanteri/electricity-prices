@@ -85,7 +85,7 @@ pub fn Overview() -> Element {
 
         // Charts.
         div { class: "mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2",
-            Card { title: "Day-ahead prices \u{00B7} \u{20AC}/MWh".to_string(),
+            Card { title: "Day-ahead prices \u{00B7} c/kWh".to_string(),
                 match prices() {
                     Some(Ok(d)) => rsx! { PriceChart { data: d } },
                     Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
@@ -129,15 +129,15 @@ fn HeroPrice(data: Vec<PricePoint>) -> Element {
                         Eyebrow { text: "Current spot price".to_string() }
                         div { class: "mt-2 flex items-baseline gap-3",
                             span { class: "{price_class}",
-                                {format!("{:.1}", p.price_eur_mwh)}
+                                {format!("{c_kwh:.2}")}
                             }
-                            span { class: "readout text-lg text-muted", "\u{20AC}/MWh" }
+                            span { class: "readout text-lg text-muted", "c/kWh" }
                         }
-                        div { class: "mt-1 readout text-sm text-faint", {format!("{c_kwh:.2} c/kWh \u{00B7} as of {}", p.timestamp.format("%H:%M UTC"))} }
+                        div { class: "mt-1 readout text-sm text-faint", {format!("{:.1} \u{20AC}/MWh \u{00B7} as of {}", p.price_eur_mwh, p.timestamp.format("%H:%M UTC"))} }
                     }
                     div { class: "flex items-center gap-2 {trend_class}",
                         span { class: "readout text-lg", "{arrow}" }
-                        span { class: "text-sm", {format!("{:+.1} vs period avg", p.price_eur_mwh - avg)} }
+                        span { class: "text-sm", {format!("{:+.2} c/kWh vs period avg", (p.price_eur_mwh - avg) / 10.0)} }
                     }
                 }
             }

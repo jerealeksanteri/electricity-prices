@@ -116,7 +116,7 @@ pub fn Prices() -> Element {
         match data() {
             Some(Ok(d)) if !d.is_empty() => rsx! {
                 PriceStats { data: d.clone() }
-                Card { title: "Price curve \u{00B7} \u{20AC}/MWh".to_string(), PriceChart { data: d } }
+                Card { title: "Price curve \u{00B7} c/kWh".to_string(), PriceChart { data: d } }
             },
             Some(Ok(_)) => rsx! {
                 div { class: "panel p-8 text-center text-muted",
@@ -149,14 +149,14 @@ fn PriceStats(data: Vec<PricePoint>) -> Element {
         div { class: "mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4",
             StatTile {
                 label: "Cheapest".to_string(),
-                value: format!("{:.1}", min.map(|p| p.price_eur_mwh).unwrap_or(0.0)),
+                value: format!("{:.2}", min.map(|p| p.price_eur_mwh).unwrap_or(0.0) / 10.0),
                 accent: "text-tier-low".to_string(),
                 hint: min_hint,
             }
-            StatTile { label: "Average".to_string(), value: format!("{avg:.1}"), hint: "\u{20AC}/MWh".to_string() }
+            StatTile { label: "Average".to_string(), value: format!("{:.2}", avg / 10.0), hint: "c/kWh".to_string() }
             StatTile {
                 label: "Most expensive".to_string(),
-                value: format!("{:.1}", max.map(|p| p.price_eur_mwh).unwrap_or(0.0)),
+                value: format!("{:.2}", max.map(|p| p.price_eur_mwh).unwrap_or(0.0) / 10.0),
                 accent: "text-tier-high".to_string(),
                 hint: max_hint,
             }
