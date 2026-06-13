@@ -2,36 +2,32 @@
 FROM rust:latest AS builder
 WORKDIR /app
 
-# dioxus-cli for `dx build`
-RUN cargo install dioxus-cli@^0.6 --locked
+# dioxus-cli for `dx build`, plus the wasm target for the client build.
+RUN cargo install dioxus-cli@^0.6 --locked \
+    && rustup target add wasm32-unknown-unknown
 
 COPY . .
-# Builds web (wasm) assets + the server binary with the `server` feature.
-RUN dx build --release --features server
+# Fullstack build: dx builds the wasm client (with the `web` feature) and the
+# Axum server (with the `server` feature) as SEPARATE targets and picks the
+# right feature for each automatically. Do NOT pass `--features server` here —
+# it would force `server` (tokio/mio) onto the wasm client, which can't compile
+# for wasm32.
+RUN dx build --release --fullstack
 
-# dx places build output under target/dx/<app>/release/web/. Normalize the
-# server binary + public web assets into /app/out for the runtime stage.
-#
-# NOTE: The exact output layout (target/dx/voltti/release/web/)
-# can vary by dioxus-cli patch version. The cp/find lines below are
-# intentionally defensive: `|| true` prevents a layout mismatch from failing
-# the build, and `find` locates the server binary by name + executable bit
-# rather than assuming a hard path.
-#
-# After the first real `docker build`, inspect the build log for the actual
-# paths and simplify these COPY/cp lines to remove the defensive fallbacks.
-RUN mkdir -p /app/out \
-    && cp -r target/dx/voltti/release/web/* /app/out/ 2>/dev/null || true \
-    && find target -maxdepth 6 -type f -name voltti -perm -u+x -exec cp {} /app/out/server \; 2>/dev/null || true
+# A dx fullstack build emits the server binary (named `server`) and the client
+# `public/` assets together under target/dx/<app>/release/web/. The server
+# serves `./public` relative to its own working directory.
 
 # ---- Runtime stage ----
 FROM debian:bookworm-slim AS runtime
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+# ca-certificates for TLS trust roots; libssl3 because reqwest (via the entsoe
+# crate) links OpenSSL by default.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/out/ /app/
-COPY --from=builder /app/assets/ /app/assets/
+# Copy `server` + `public/` (which already includes tailwind.css + echarts.min.js).
+COPY --from=builder /app/target/dx/voltti/release/web/ /app/
 
 ENV BIND_ADDR=0.0.0.0:8080
 EXPOSE 8080
