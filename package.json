@@ -1,0 +1,12 @@
+{
+  "name": "voltti-styles",
+  "private": true,
+  "description": "Tailwind CSS build for fi-energy-dashboard (compiles tailwind.input.css -> assets/tailwind.css).",
+  "scripts": {
+    "css": "tailwindcss -i ./tailwind.input.css -o ./assets/tailwind.css --minify",
+    "css:watch": "tailwindcss -i ./tailwind.input.css -o ./assets/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
