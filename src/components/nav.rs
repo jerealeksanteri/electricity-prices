@@ -45,5 +45,8 @@ pub fn Nav() -> Element {
         main { class: "mx-auto max-w-6xl px-6 py-8",
             Outlet::<Route> {}
         }
+        footer { class: "border-t border-line py-6 text-center text-sm text-muted",
+            "© Jere Niemi, 2026"
+        }
     }
 }
