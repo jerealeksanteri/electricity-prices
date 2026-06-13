@@ -26,12 +26,19 @@ fn server_main() {
     let token = std::env::var("ENTSO_E_TOKEN").expect(
         "ENTSO_E_TOKEN must be set — request an API token at https://transparency.entsoe.eu/",
     );
-    let bind = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
     let cache = Arc::new(EntsoeCache::new(token));
 
     let rt = tokio::runtime::Runtime::new().expect("create tokio runtime");
     rt.block_on(async move {
-        let addr: std::net::SocketAddr = bind.parse().expect("BIND_ADDR must be a valid socket address (e.g. 0.0.0.0:8080)");
+        // Under `dx serve` (dev), the Dioxus CLI assigns the server address and
+        // proxies to it — honor that. In production, bind BIND_ADDR when set
+        // (the Docker image sets it to 0.0.0.0:8080).
+        let addr: std::net::SocketAddr = match std::env::var("BIND_ADDR") {
+            Ok(s) => s
+                .parse()
+                .expect("BIND_ADDR must be a valid socket address (e.g. 0.0.0.0:8080)"),
+            Err(_) => dioxus::cli_config::fullstack_address_or_localhost(),
+        };
 
         // Build the axum router:
         //  1. serve_dioxus_application registers server functions, static assets, and SSR.
