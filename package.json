@@ -1,5 +1,5 @@
 {
-  "name": "fi-energy-dashboard-styles",
+  "name": "voltti-styles",
   "private": true,
   "description": "Tailwind CSS build for fi-energy-dashboard (compiles tailwind.input.css -> assets/tailwind.css).",
   "scripts": {

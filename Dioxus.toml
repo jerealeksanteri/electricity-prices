@@ -1,8 +1,8 @@
 [application]
-name = "fi-energy-dashboard"
+name = "voltti"
 
 [web.app]
-title = "FI Energy Dashboard"
+title = "Voltti"
 
 [web.watcher]
 watch_path = ["src", "assets"]

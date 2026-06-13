@@ -20,7 +20,7 @@ pub fn Nav() -> Element {
                         div { class: "font-display text-[0.95rem] font-extrabold tracking-tight text-ink",
                             "VOLTTI"
                         }
-                        div { class: "eyebrow mt-0.5 text-faint", "FI ENERGY" }
+                        div { class: "eyebrow mt-0.5 text-faint", "FINNISH ELECTRICITY" }
                     }
                 }
                 nav { class: "flex items-center gap-1",

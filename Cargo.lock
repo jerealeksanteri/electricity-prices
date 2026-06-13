@@ -1075,28 +1075,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
 
 [[package]]
-name = "fi-energy-dashboard"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "charming",
- "chrono",
- "chrono-tz",
- "dioxus",
- "dotenvy",
- "entsoe",
- "moka",
- "quick-xml",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3520,6 +3498,28 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "voltti"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "charming",
+ "chrono",
+ "chrono-tz",
+ "dioxus",
+ "dotenvy",
+ "entsoe",
+ "moka",
+ "quick-xml",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "walkdir"

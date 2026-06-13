@@ -12,7 +12,7 @@ RUN dx build --release --features server
 # dx places build output under target/dx/<app>/release/web/. Normalize the
 # server binary + public web assets into /app/out for the runtime stage.
 #
-# NOTE: The exact output layout (target/dx/fi-energy-dashboard/release/web/)
+# NOTE: The exact output layout (target/dx/voltti/release/web/)
 # can vary by dioxus-cli patch version. The cp/find lines below are
 # intentionally defensive: `|| true` prevents a layout mismatch from failing
 # the build, and `find` locates the server binary by name + executable bit
@@ -21,8 +21,8 @@ RUN dx build --release --features server
 # After the first real `docker build`, inspect the build log for the actual
 # paths and simplify these COPY/cp lines to remove the defensive fallbacks.
 RUN mkdir -p /app/out \
-    && cp -r target/dx/fi-energy-dashboard/release/web/* /app/out/ 2>/dev/null || true \
-    && find target -maxdepth 6 -type f -name fi-energy-dashboard -perm -u+x -exec cp {} /app/out/server \; 2>/dev/null || true
+    && cp -r target/dx/voltti/release/web/* /app/out/ 2>/dev/null || true \
+    && find target -maxdepth 6 -type f -name voltti -perm -u+x -exec cp {} /app/out/server \; 2>/dev/null || true
 
 # ---- Runtime stage ----
 FROM debian:bookworm-slim AS runtime

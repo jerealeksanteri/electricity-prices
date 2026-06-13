@@ -34,7 +34,7 @@ jobs:
         run: cargo test -p entsoe --locked
 
       - name: Test app (server feature)
-        run: cargo test -p fi-energy-dashboard --features server --locked
+        run: cargo test -p voltti --features server --locked
 
   release:
     name: Build & push image
