@@ -11,7 +11,7 @@ use crate::components::charts::price_chart::PriceChart;
 #[component]
 pub fn Overview() -> Element {
     let prices = use_server_future(|| get_spot_prices(FI_AREA.to_string()))?;
-    let gen = use_server_future(|| get_generation_mix(FI_AREA.to_string()))?;
+    let generation = use_server_future(|| get_generation_mix(FI_AREA.to_string()))?;
     let fc = use_server_future(|| get_consumption_forecast(FI_AREA.to_string()))?;
 
     rsx! {
@@ -27,7 +27,7 @@ pub fn Overview() -> Element {
                     }
                 }
                 Card { title: "Generation total".to_string(),
-                    match gen() {
+                    match generation() {
                         Some(Ok(d)) => rsx! {
                             div { class: "text-3xl font-bold",
                                 {format!("{:.0} MW", d.sources.iter().map(|s| s.value_mw).sum::<f64>())}
