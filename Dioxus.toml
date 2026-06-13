@@ -1,0 +1,12 @@
+[application]
+name = "fi-energy-dashboard"
+
+[web.app]
+title = "FI Energy Dashboard"
+
+[web.resource]
+style = ["/assets/tailwind.css"]
+script = []
+
+[web.watcher]
+watch_path = ["src", "assets"]
