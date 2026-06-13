@@ -1,31 +1,67 @@
 use dioxus::prelude::*;
 
+/// Small uppercase tracked label ("instrument panel" eyebrow).
 #[component]
-pub fn Skeleton() -> Element {
-    rsx! {
-        div { class: "animate-pulse space-y-4",
-            div { class: "h-6 w-1/3 rounded bg-gray-700" }
-            div { class: "h-64 w-full rounded bg-gray-800" }
-        }
-    }
+pub fn Eyebrow(text: String) -> Element {
+    rsx! { div { class: "eyebrow", "{text}" } }
 }
 
-#[component]
-pub fn ErrorBanner(msg: String) -> Element {
-    rsx! {
-        div { class: "rounded border border-red-700 bg-red-900/40 p-4 text-red-200",
-            span { class: "font-semibold", "Error: " }
-            "{msg}"
-        }
-    }
-}
-
+/// Titled panel container.
 #[component]
 pub fn Card(title: String, children: Element) -> Element {
     rsx! {
-        div { class: "rounded-lg border border-gray-700 bg-gray-800 p-5",
-            h2 { class: "mb-3 text-sm font-medium uppercase tracking-wide text-gray-400", "{title}" }
+        section { class: "panel animate-fade-up p-5",
+            div { class: "mb-4 flex items-center justify-between",
+                Eyebrow { text: title }
+            }
             {children}
+        }
+    }
+}
+
+/// A single statistic tile: tracked label + large mono readout + optional hint.
+#[component]
+pub fn StatTile(
+    label: String,
+    value: String,
+    #[props(default)] hint: String,
+    #[props(default)] accent: String,
+) -> Element {
+    let color = if accent.is_empty() { "text-ink" } else { accent.as_str() };
+    let value_class = format!("readout mt-2 text-3xl font-semibold {color}");
+    rsx! {
+        div { class: "panel animate-fade-up p-5",
+            Eyebrow { text: label }
+            div { class: "{value_class}", "{value}" }
+            if !hint.is_empty() {
+                div { class: "mt-1 text-xs text-faint", "{hint}" }
+            }
+        }
+    }
+}
+
+/// Loading placeholder with an aurora shimmer sweep.
+#[component]
+pub fn Skeleton() -> Element {
+    rsx! {
+        div { class: "panel relative overflow-hidden p-5",
+            div { class: "h-4 w-1/4 rounded bg-elevated" }
+            div { class: "mt-4 h-56 w-full rounded-lg bg-elevated/60" }
+            div {
+                class: "pointer-events-none absolute inset-0 -translate-x-full",
+                style: "background: linear-gradient(90deg, transparent, rgba(94,242,166,0.06), transparent); animation: shimmer 1.6s infinite;",
+            }
+        }
+    }
+}
+
+/// Inline error surface.
+#[component]
+pub fn ErrorBanner(msg: String) -> Element {
+    rsx! {
+        div { class: "panel border-tier-high/40 bg-tier-high/5 p-4 text-sm text-tier-high",
+            span { class: "font-semibold", "Error \u{2014} " }
+            "{msg}"
         }
     }
 }

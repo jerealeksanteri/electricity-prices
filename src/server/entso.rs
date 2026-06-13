@@ -202,6 +202,44 @@ pub async fn get_spot_prices(area: String) -> Result<Vec<PricePoint>, ServerFnEr
     Ok(mapped)
 }
 
+/// Day-ahead prices for an explicit `[start_ts, end_ts]` window (unix seconds).
+/// Used by the Prices page's timeframe selector. Cached per area+range.
+#[server]
+pub async fn get_prices_range(
+    area: String,
+    start_ts: i64,
+    end_ts: i64,
+) -> Result<Vec<PricePoint>, ServerFnError> {
+    let cache = cache_ctx().await?;
+    let key = format!("{area}:{start_ts}:{end_ts}");
+    if let Some(hit) = cache.get_prices(&key).await {
+        return Ok(hit);
+    }
+    let d = domain(&area)?;
+    let start = chrono::DateTime::<Utc>::from_timestamp(start_ts, 0)
+        .ok_or_else(|| ServerFnError::new("invalid start timestamp"))?;
+    let end = chrono::DateTime::<Utc>::from_timestamp(end_ts, 0)
+        .ok_or_else(|| ServerFnError::new("invalid end timestamp"))?;
+    if end <= start {
+        return Err(ServerFnError::new("end must be after start"));
+    }
+    let params = RequestParameters {
+        document_type: DocumentType::A44,
+        out_domain: Some(d),
+        in_domain: Some(d),
+        out_bidding_zone_domain: None,
+        period_start: PeriodTimestamp(start),
+        period_end: PeriodTimestamp(end),
+        process_type: None,
+        psr_type: None,
+        authorization: Authorization::new(cache.token.clone()),
+    };
+    let doc = cache.client.get_prices(&params).await.map_err(to_sfe)?;
+    let mapped = map_prices(&doc).map_err(to_sfe)?;
+    cache.put_prices(&key, mapped.clone()).await;
+    Ok(mapped)
+}
+
 #[server]
 pub async fn get_generation_mix(area: String) -> Result<GenerationMix, ServerFnError> {
     let cache = cache_ctx().await?;

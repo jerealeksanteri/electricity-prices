@@ -1,5 +1,10 @@
 use dioxus::prelude::*;
-use charming::{Chart, component::Axis, element::AxisType, series::Bar};
+use charming::{
+    Chart,
+    component::Axis,
+    element::{AxisType, Tooltip, Trigger},
+    series::Bar,
+};
 
 use crate::server::PricePoint;
 use super::{next_id, render_echarts};
@@ -10,11 +15,11 @@ fn eur_mwh_to_c_kwh(p: f64) -> f64 {
 
 fn bar_color(c_kwh: f64) -> &'static str {
     if c_kwh < 5.0 {
-        "#22c55e"
+        "#43e08a"
     } else if c_kwh <= 15.0 {
-        "#eab308"
+        "#f5c451"
     } else {
-        "#ef4444"
+        "#fb7185"
     }
 }
 
@@ -24,19 +29,21 @@ pub fn PriceChart(data: Vec<PricePoint>) -> Element {
     use_effect(move || {
         let labels: Vec<String> = data
             .iter()
-            .map(|p| p.timestamp.format("%H:%M").to_string())
+            .map(|p| p.timestamp.format("%a %H:%M").to_string())
             .collect();
         let values: Vec<f64> = data.iter().map(|p| p.price_eur_mwh).collect();
         let chart = Chart::new()
+            .tooltip(Tooltip::new().trigger(Trigger::Axis))
             .x_axis(Axis::new().type_(AxisType::Category).data(labels.clone()))
             .y_axis(Axis::new().type_(AxisType::Value))
             .series(Bar::new().data(values.clone()));
         let mut json = serde_json::to_string(&chart).unwrap_or_else(|_| "{}".into());
+        // Recolor each bar by price tier via the serialized series `data` array.
         let colored: Vec<String> = values
             .iter()
             .map(|v| {
                 format!(
-                    "{{\"value\":{},\"itemStyle\":{{\"color\":\"{}\"}}}}",
+                    "{{\"value\":{},\"itemStyle\":{{\"color\":\"{}\",\"borderRadius\":[3,3,0,0]}}}}",
                     v,
                     bar_color(eur_mwh_to_c_kwh(*v))
                 )
@@ -52,5 +59,5 @@ pub fn PriceChart(data: Vec<PricePoint>) -> Element {
         }
         render_echarts(&id(), &json);
     });
-    rsx! { div { id: "{id}", class: "h-80 w-full" } }
+    rsx! { div { id: "{id}", class: "h-72 w-full" } }
 }

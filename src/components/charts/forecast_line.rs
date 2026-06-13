@@ -1,5 +1,10 @@
 use dioxus::prelude::*;
-use charming::{Chart, component::Axis, element::AxisType, series::Line};
+use charming::{
+    Chart,
+    component::Axis,
+    element::{AreaStyle, AxisType, Tooltip, Trigger},
+    series::Line,
+};
 
 use crate::server::ForecastPoint;
 use super::{next_id, render_echarts};
@@ -10,16 +15,21 @@ pub fn ForecastLine(data: Vec<ForecastPoint>) -> Element {
     use_effect(move || {
         let labels: Vec<String> = data
             .iter()
-            .map(|p| p.timestamp.format("%H:%M").to_string())
+            .map(|p| p.timestamp.format("%a %H:%M").to_string())
             .collect();
         let values: Vec<f64> = data.iter().map(|p| p.value_mw).collect();
         let chart = Chart::new()
+            .tooltip(Tooltip::new().trigger(Trigger::Axis))
             .x_axis(Axis::new().type_(AxisType::Category).data(labels))
             .y_axis(Axis::new().type_(AxisType::Value))
-            // smooth takes F: Into<f64>; 0.5 gives a moderate smooth curve
-            .series(Line::new().data(values).smooth(0.5_f64));
+            .series(
+                Line::new()
+                    .data(values)
+                    .smooth(0.45)
+                    .area_style(AreaStyle::new()),
+            );
         let json = serde_json::to_string(&chart).unwrap_or_else(|_| "{}".into());
         render_echarts(&id(), &json);
     });
-    rsx! { div { id: "{id}", class: "h-80 w-full" } }
+    rsx! { div { id: "{id}", class: "h-72 w-full" } }
 }

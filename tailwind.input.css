@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    background-color: #080b10;
+    color: #e7eef6;
+    font-family: "Schibsted Grotesk", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Aurora-night atmosphere: layered radial glows fixed behind the app. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(900px 500px at 12% -8%, rgba(94, 242, 166, 0.10), transparent 60%),
+      radial-gradient(800px 500px at 92% 4%, rgba(52, 211, 224, 0.08), transparent 60%),
+      radial-gradient(700px 600px at 60% 110%, rgba(167, 139, 250, 0.07), transparent 60%);
+    pointer-events: none;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: #1e2b39;
+    border-radius: 999px;
+    border: 2px solid #080b10;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #2a3b4d; }
+}
+
+@layer components {
+  /* Instrument-panel card */
+  .panel {
+    @apply rounded-xl border border-line bg-panel/80 backdrop-blur-sm shadow-panel;
+  }
+
+  /* Tiny uppercase tracked label used across the console */
+  .eyebrow {
+    @apply text-[0.68rem] font-semibold uppercase tracking-label text-faint;
+  }
+
+  /* Pill button (timeframe presets / nav) */
+  .pill {
+    @apply rounded-full border border-line px-3 py-1.5 text-sm text-muted transition
+           hover:border-aurora-green/40 hover:text-ink;
+  }
+  .pill-active {
+    @apply border-aurora-green/50 bg-aurora-green/10 text-aurora-green shadow-glow;
+  }
+
+  /* Big numeric readout */
+  .readout {
+    @apply font-mono tabular-nums tracking-tight;
+  }
+}

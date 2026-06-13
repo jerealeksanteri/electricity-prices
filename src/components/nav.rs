@@ -6,25 +6,43 @@ pub fn Nav() -> Element {
     let links = [
         (Route::Overview {}, "Overview"),
         (Route::Prices {}, "Prices"),
-        (Route::Generation {}, "Generation"),
-        (Route::Forecast {}, "Forecast"),
-        (Route::Flows {}, "Flows"),
+        (Route::Grid {}, "Grid"),
     ];
-    let current: Route = use_route::<Route>();
+    let current: Route = use_route();
     rsx! {
-        nav { class: "flex items-center gap-6 bg-gray-900 px-6 py-4 text-gray-100 border-b border-gray-800",
-            span { class: "text-lg font-bold text-emerald-400", "FI Energy Dashboard" }
-            div { class: "flex gap-2",
-                for (route, label) in links {
-                    Link {
-                        to: route.clone(),
-                        class: if current == route { "px-3 py-1 rounded bg-gray-700 text-white" } else { "px-3 py-1 rounded text-gray-300 hover:bg-gray-800" },
-                        "{label}"
+        header { class: "sticky top-0 z-20 border-b border-line bg-base/70 backdrop-blur-md",
+            div { class: "mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5",
+                Link { to: Route::Overview {}, class: "group flex items-center gap-2.5",
+                    span { class: "grid h-7 w-7 place-items-center rounded-md border border-aurora-green/30 bg-aurora-green/10 text-aurora-green animate-glow-pulse",
+                        "\u{26A1}"
                     }
+                    div { class: "leading-none",
+                        div { class: "font-display text-[0.95rem] font-extrabold tracking-tight text-ink",
+                            "VOLTTI"
+                        }
+                        div { class: "eyebrow mt-0.5 text-faint", "FI ENERGY" }
+                    }
+                }
+                nav { class: "flex items-center gap-1",
+                    for (route , label) in links {
+                        Link {
+                            to: route.clone(),
+                            class: if current == route {
+                                "rounded-lg px-3.5 py-1.5 text-sm font-semibold text-aurora-green bg-aurora-green/10 transition"
+                            } else {
+                                "rounded-lg px-3.5 py-1.5 text-sm font-medium text-muted hover:text-ink hover:bg-elevated transition"
+                            },
+                            "{label}"
+                        }
+                    }
+                }
+                div { class: "hidden items-center gap-2 sm:flex",
+                    span { class: "h-1.5 w-1.5 rounded-full bg-aurora-green animate-glow-pulse" }
+                    span { class: "eyebrow text-faint", "ENTSO-E LIVE" }
                 }
             }
         }
-        main { class: "min-h-screen bg-gray-900 p-6 text-gray-100",
+        main { class: "mx-auto max-w-6xl px-6 py-8",
             Outlet::<Route> {}
         }
     }
