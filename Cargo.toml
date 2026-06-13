@@ -1,6 +1,30 @@
 [package]
-name = "electricity-prices"
+name = "fi-energy-dashboard"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+dioxus = { version = "0.6", features = ["router"] }
+entsoe = { path = "entsoe" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+charming = "0.4"
+thiserror = "2"
+anyhow = "1"
+
+# server-only deps
+moka = { version = "0.12", features = ["future"], optional = true }
+axum = { version = "0.7", optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+dotenvy = { version = "0.15", optional = true }
+tracing-subscriber = { version = "0.3", optional = true }
+
+[features]
+default = []
+web = ["dioxus/web"]
+server = ["dioxus/server", "dep:moka", "dep:axum", "dep:tokio", "dep:dotenvy", "dep:tracing-subscriber"]
+
+[workspace]
+members = ["entsoe"]
