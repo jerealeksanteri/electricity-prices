@@ -1,0 +1,60 @@
+name: docs
+
+# Builds the Rust API reference (`cargo doc`) for the workspace and publishes it
+# to GitHub Pages on every push to main.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent Pages deployment.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build API docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+
+      # `--features server` so the server module (cache, mapping, server fns) is
+      # documented, not just the client-side stubs.
+      - name: cargo doc
+        run: cargo doc --no-deps --workspace --features server
+
+      # cargo doc has no root index.html; redirect to the app crate's docs.
+      - name: Add root redirect
+        run: echo '<!doctype html><meta http-equiv="refresh" content="0; url=voltti/index.html">' > target/doc/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload docs artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/doc
+
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

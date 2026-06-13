@@ -1,3 +1,16 @@
+//! # Voltti
+//!
+//! A Dioxus 0.6 fullstack dashboard for the Finnish electricity market, showing
+//! ENTSO-E day-ahead spot prices (in c/kWh), the generation mix, load forecast,
+//! and cross-border flows.
+//!
+//! - [`server`] — shared data types, the moka cache, and the `#[server]`
+//!   functions that fetch and cache ENTSO-E data.
+//! - [`components`] — the router, pages, charts, and shared UI.
+//!
+//! The binary launches the Dioxus client on the web target and an Axum server
+//! (with the cache injected as an extension) on the server target.
+
 mod components;
 mod server;
 
