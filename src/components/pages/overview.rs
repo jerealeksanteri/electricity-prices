@@ -32,7 +32,7 @@ fn is_renewable(source: &str) -> bool {
 #[component]
 pub fn Overview() -> Element {
     let prices = use_server_future(|| get_spot_prices(FI_AREA.to_string()))?;
-    let gen = use_server_future(|| get_generation_mix(FI_AREA.to_string()))?;
+    let gen_mix = use_server_future(|| get_generation_mix(FI_AREA.to_string()))?;
     let fc = use_server_future(|| get_consumption_forecast(FI_AREA.to_string()))?;
     let flows = use_server_future(|| get_cross_border_flows(FI_AREA.to_string()))?;
 
@@ -51,7 +51,7 @@ pub fn Overview() -> Element {
 
         // Quick stats.
         div { class: "mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4",
-            match gen() {
+            match gen_mix() {
                 Some(Ok(g)) => {
                     let total: f64 = g.sources.iter().map(|s| s.value_mw).sum();
                     let renew: f64 = g.sources.iter().filter(|s| is_renewable(&s.source_type)).map(|s| s.value_mw).sum();
