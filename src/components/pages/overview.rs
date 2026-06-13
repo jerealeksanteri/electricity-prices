@@ -39,9 +39,15 @@ pub fn Overview() -> Element {
                 }
                 Card { title: "Peak forecast (next 24h)".to_string(),
                     match fc() {
-                        Some(Ok(d)) => rsx! {
-                            div { class: "text-3xl font-bold",
-                                {format!("{:.0} MW", d.iter().map(|p| p.value_mw).fold(0.0_f64, f64::max))}
+                        Some(Ok(d)) => {
+                            let horizon = chrono::Utc::now() + chrono::Duration::hours(24);
+                            let now = chrono::Utc::now();
+                            let peak = d.iter()
+                                .filter(|p| p.timestamp >= now && p.timestamp <= horizon)
+                                .map(|p| p.value_mw)
+                                .fold(0.0_f64, f64::max);
+                            rsx! {
+                                div { class: "text-3xl font-bold", {format!("{peak:.0} MW")} }
                             }
                         },
                         Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
@@ -66,14 +72,14 @@ fn CurrentPrice(data: Vec<PricePoint>) -> Element {
     let current = data
         .iter()
         .min_by_key(|p| (p.timestamp - now).num_seconds().abs());
-    let yest_avg = if data.is_empty() {
+    let period_avg = if data.is_empty() {
         0.0
     } else {
         data.iter().map(|p| p.price_eur_mwh).sum::<f64>() / data.len() as f64
     };
     match current {
         Some(p) => {
-            let up = p.price_eur_mwh >= yest_avg;
+            let up = p.price_eur_mwh >= period_avg;
             rsx! {
                 div { class: "text-4xl font-bold", {format!("{:.1} EUR/MWh", p.price_eur_mwh)} }
                 div {
