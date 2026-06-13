@@ -1,0 +1,12 @@
+[package]
+name = "entsoe"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+reqwest = "0.13.3"
+chrono = { version = "0.4.44", features = ["serde"] }
+quick-xml = { version = "0.40.1", features = ["serialize"] }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2.0.18"
+tracing = "0.1.44"
