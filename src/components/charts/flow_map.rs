@@ -12,9 +12,8 @@ use super::{next_id, render_echarts};
 #[component]
 pub fn FlowChart(data: Vec<FlowPoint>) -> Element {
     let id = use_memo(|| format!("flows-{}", next_id()));
-    let rows = data.clone();
-    use_effect(move || {
-        let labels: Vec<String> = rows
+    use_effect(use_reactive!(|data| {
+        let labels: Vec<String> = data
             .iter()
             .map(|f| format!("{} \u{2192} {}", f.from_area, f.to_area))
             .collect();
@@ -22,10 +21,10 @@ pub fn FlowChart(data: Vec<FlowPoint>) -> Element {
             .tooltip(Tooltip::new().trigger(Trigger::Axis))
             .x_axis(Axis::new().type_(AxisType::Value))
             .y_axis(Axis::new().type_(AxisType::Category).data(labels))
-            .series(Bar::new().data(rows.iter().map(|f| f.value_mw).collect::<Vec<f64>>()));
+            .series(Bar::new().data(data.iter().map(|f| f.value_mw).collect::<Vec<f64>>()));
         let mut json = serde_json::to_string(&chart).unwrap_or_else(|_| "{}".into());
         // Color bars: imports into FI = aurora green, exports = teal.
-        let colored: Vec<String> = rows
+        let colored: Vec<String> = data
             .iter()
             .map(|f| {
                 let color = if f.to_area == "FI" { "#5ef2a6" } else { "#34d3e0" };
@@ -44,6 +43,6 @@ pub fn FlowChart(data: Vec<FlowPoint>) -> Element {
             }
         }
         render_echarts(&id(), &json);
-    });
+    }));
     rsx! { div { id: "{id}", class: "h-64 w-full" } }
 }

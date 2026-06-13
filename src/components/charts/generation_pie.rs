@@ -12,7 +12,7 @@ use super::{next_id, render_echarts};
 #[component]
 pub fn GenerationPie(data: GenerationMix) -> Element {
     let id = use_memo(|| format!("gen-pie-{}", next_id()));
-    use_effect(move || {
+    use_effect(use_reactive!(|data| {
         let pairs: Vec<(f64, String)> = data
             .sources
             .iter()
@@ -29,6 +29,6 @@ pub fn GenerationPie(data: GenerationMix) -> Element {
             );
         let json = serde_json::to_string(&chart).unwrap_or_else(|_| "{}".into());
         render_echarts(&id(), &json);
-    });
+    }));
     rsx! { div { id: "{id}", class: "h-[420px] w-full" } }
 }

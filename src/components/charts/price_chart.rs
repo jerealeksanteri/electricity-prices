@@ -26,7 +26,7 @@ fn bar_color(c_kwh: f64) -> &'static str {
 #[component]
 pub fn PriceChart(data: Vec<PricePoint>) -> Element {
     let id = use_memo(|| format!("price-chart-{}", next_id()));
-    use_effect(move || {
+    use_effect(use_reactive!(|data| {
         let labels: Vec<String> = data
             .iter()
             .map(|p| p.timestamp.format("%a %H:%M").to_string())
@@ -58,6 +58,6 @@ pub fn PriceChart(data: Vec<PricePoint>) -> Element {
             }
         }
         render_echarts(&id(), &json);
-    });
+    }));
     rsx! { div { id: "{id}", class: "h-72 w-full" } }
 }
