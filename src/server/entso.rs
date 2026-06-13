@@ -109,13 +109,17 @@ pub fn map_forecast(doc: &GlMarketDocument) -> Result<Vec<ForecastPoint>, Server
     Ok(out)
 }
 
+/// Most recent instantaneous physical flow (MW) for a single direction.
+///
+/// A11 returns hourly MW values; we want the latest available hour, not a sum
+/// over the whole requested window (which would inflate the figure ~Nx).
 #[cfg(feature = "server")]
-pub fn sum_flow(doc: &FlowMarketDocument) -> f64 {
+pub fn latest_flow(doc: &FlowMarketDocument) -> f64 {
     doc.time_series
-        .iter()
-        .flat_map(|ts| ts.period.points.iter())
+        .last()
+        .and_then(|ts| ts.period.points.last())
         .map(|p| p.quantity)
-        .sum()
+        .unwrap_or(0.0)
 }
 
 // ---------- server-only request helpers ----------
@@ -166,7 +170,7 @@ async fn sum_dir(
         authorization: Authorization::new(cache.token.clone()),
     };
     match cache.client.get_flows(&params).await {
-        Ok(doc) => sum_flow(&doc),
+        Ok(doc) => latest_flow(&doc),
         Err(_) => 0.0, // e.g. FI-RU "no matching data"
     }
 }
