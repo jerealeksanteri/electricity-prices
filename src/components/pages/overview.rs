@@ -57,8 +57,8 @@ pub fn Overview() -> Element {
                     let renew: f64 = g.sources.iter().filter(|s| is_renewable(&s.source_type)).map(|s| s.value_mw).sum();
                     let pct = if total > 0.0 { renew / total * 100.0 } else { 0.0 };
                     rsx! {
-                        StatTile { label: "Generation now".to_string(), value: format!("{total:.0} MW"), hint: Some("all sources".to_string()) }
-                        StatTile { label: "Renewable share".to_string(), value: format!("{pct:.0}%"), accent: "text-aurora-green".to_string(), hint: Some(format!("{renew:.0} MW renewable")) }
+                        StatTile { label: "Generation now".to_string(), value: format!("{total:.0} MW"), hint: "all sources".to_string() }
+                        StatTile { label: "Renewable share".to_string(), value: format!("{pct:.0}%"), accent: "text-aurora-green".to_string(), hint: format!("{renew:.0} MW renewable") }
                     }
                 }
                 Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
@@ -67,7 +67,7 @@ pub fn Overview() -> Element {
             match fc() {
                 Some(Ok(f)) => {
                     let peak = peak_24h(&f);
-                    rsx! { StatTile { label: "Peak load (24h)".to_string(), value: format!("{peak:.0} MW"), accent: "text-aurora-teal".to_string(), hint: Some("forecast".to_string()) } }
+                    rsx! { StatTile { label: "Peak load (24h)".to_string(), value: format!("{peak:.0} MW"), accent: "text-aurora-teal".to_string(), hint: "forecast".to_string() } }
                 }
                 Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
                 None => rsx! { Skeleton {} },
@@ -76,7 +76,7 @@ pub fn Overview() -> Element {
                 Some(Ok(fl)) => {
                     let net = net_flow(&fl);
                     let (label, accent) = if net >= 0.0 { ("net import", "text-aurora-green") } else { ("net export", "text-aurora-violet") };
-                    rsx! { StatTile { label: "Cross-border".to_string(), value: format!("{:.0} MW", net.abs()), accent: accent.to_string(), hint: Some(label.to_string()) } }
+                    rsx! { StatTile { label: "Cross-border".to_string(), value: format!("{:.0} MW", net.abs()), accent: accent.to_string(), hint: label.to_string() } }
                 }
                 Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
                 None => rsx! { Skeleton {} },
