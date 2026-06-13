@@ -32,3 +32,15 @@ quick-xml = { version = "0.40", features = ["serialize"] }
 
 [workspace]
 members = ["entsoe"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
