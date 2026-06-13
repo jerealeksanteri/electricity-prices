@@ -24,7 +24,7 @@ tracing-subscriber = { version = "0.3", optional = true }
 [features]
 default = []
 web = ["dioxus/web"]
-server = ["dioxus/server", "dep:moka", "dep:axum", "dep:tokio", "dep:dotenvy", "dep:tracing-subscriber"]
+server = ["dioxus/fullstack", "dioxus/server", "dep:moka", "dep:axum", "dep:tokio", "dep:dotenvy", "dep:tracing-subscriber"]
 
 [workspace]
 members = ["entsoe"]
