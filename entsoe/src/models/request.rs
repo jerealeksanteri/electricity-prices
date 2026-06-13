@@ -133,26 +133,27 @@ pub struct PsrType(&'static str, &'static str); // (code, human name)
 
 impl PsrType {
     pub fn from_code(code: &str) -> PsrType {
-        let name = match code {
-            "B01" => "Biomass",
-            "B02" => "Fossil Brown coal/Lignite",
-            "B04" => "Fossil Gas",
-            "B05" => "Fossil Hard coal",
-            "B06" => "Fossil Oil",
-            "B09" => "Geothermal",
-            "B10" => "Hydro Pumped Storage",
-            "B11" => "Hydro Run-of-river",
-            "B12" => "Hydro Water Reservoir",
-            "B14" => "Nuclear",
-            "B15" => "Other renewable",
-            "B16" => "Solar",
-            "B17" => "Waste",
-            "B18" => "Wind Offshore",
-            "B19" => "Wind Onshore",
-            "B20" => "Other",
-            _ => "Other",
-        };
-        PsrType(Box::leak(code.to_string().into_boxed_str()), name)
+        // Return fully `'static` (code, name) pairs so `PsrType` stays `Copy`
+        // with no per-call allocation/leak. Unknown codes collapse to B20/Other.
+        match code {
+            "B01" => PsrType("B01", "Biomass"),
+            "B02" => PsrType("B02", "Fossil Brown coal/Lignite"),
+            "B04" => PsrType("B04", "Fossil Gas"),
+            "B05" => PsrType("B05", "Fossil Hard coal"),
+            "B06" => PsrType("B06", "Fossil Oil"),
+            "B09" => PsrType("B09", "Geothermal"),
+            "B10" => PsrType("B10", "Hydro Pumped Storage"),
+            "B11" => PsrType("B11", "Hydro Run-of-river"),
+            "B12" => PsrType("B12", "Hydro Water Reservoir"),
+            "B14" => PsrType("B14", "Nuclear"),
+            "B15" => PsrType("B15", "Other renewable"),
+            "B16" => PsrType("B16", "Solar"),
+            "B17" => PsrType("B17", "Waste"),
+            "B18" => PsrType("B18", "Wind Offshore"),
+            "B19" => PsrType("B19", "Wind Onshore"),
+            "B20" => PsrType("B20", "Other"),
+            _ => PsrType("B20", "Other"),
+        }
     }
 
     pub fn code(&self) -> &str {
