@@ -4,9 +4,16 @@ name = "fi-energy-dashboard"
 [web.app]
 title = "FI Energy Dashboard"
 
-[web.resource]
-style = ["/assets/tailwind.css"]
-script = []
-
 [web.watcher]
 watch_path = ["src", "assets"]
+
+# Tailwind CSS and echarts.min.js are loaded in code via `asset!()` +
+# `document::Stylesheet`/`document::Script` (see src/components/app.rs), so the
+# resource lists stay empty. dx 0.6 requires the nested `dev` table.
+[web.resource]
+style = []
+script = []
+
+[web.resource.dev]
+style = []
+script = []
