@@ -21,7 +21,13 @@ pub fn render_echarts(id: &str, option_json: &str) {
           if (!el) return;
           var chart = echarts.getInstanceByDom(el) || echarts.init(el);
           chart.setOption({option_json});
-          window.addEventListener('resize', function() {{ chart.resize(); }});
+          if (!el.__echartsResizeBound) {{
+            el.__echartsResizeBound = true;
+            window.addEventListener('resize', function() {{
+              var c = echarts.getInstanceByDom(el);
+              if (c) c.resize();
+            }});
+          }}
         }})();
         "#
     );
