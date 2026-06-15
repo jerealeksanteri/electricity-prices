@@ -95,6 +95,53 @@ impl EntsoeCache {
 
 pub type SharedCache = Arc<EntsoeCache>;
 
+/// Spawn a background task that pre-fetches and continuously refreshes all
+/// cached data so that user requests always hit warm cache entries.
+///
+/// Returns a `Notify` that is signalled once the **first** warm cycle
+/// completes — the server should await this before accepting traffic.
+pub fn spawn_cache_warmer(cache: SharedCache) -> Arc<tokio::sync::Notify> {
+    let ready = Arc::new(tokio::sync::Notify::new());
+    let ready_tx = ready.clone();
+    tokio::spawn(async move {
+        let mut first = true;
+        loop {
+            tracing::info!("cache warmer: refreshing all data");
+            warm_all(&cache).await;
+            if first {
+                tracing::info!("cache warmer: first warm complete — server ready");
+                ready_tx.notify_one();
+                first = false;
+            }
+            // Refresh every 9 min (just before the shortest 10-min TTL expires).
+            tokio::time::sleep(Duration::from_secs(9 * 60)).await;
+        }
+    });
+    ready
+}
+
+/// Populate every cache entry by calling the shared `get_or_fetch_*` helpers
+/// (the same code path user requests take, so moka deduplicates automatically).
+async fn warm_all(cache: &EntsoeCache) {
+    use crate::server::entso::{
+        get_or_fetch_flows, get_or_fetch_forecast, get_or_fetch_generation,
+        get_or_fetch_prices,
+    };
+    use crate::server::FI_AREA;
+
+    let area = FI_AREA;
+    let (r1, r2, r3, r4) = tokio::join!(
+        get_or_fetch_prices(cache, area),
+        get_or_fetch_generation(cache, area),
+        get_or_fetch_forecast(cache, area),
+        get_or_fetch_flows(cache, area),
+    );
+    if let Err(e) = r1 { tracing::warn!("warmer: prices: {e}"); }
+    if let Err(e) = r2 { tracing::warn!("warmer: generation: {e}"); }
+    if let Err(e) = r3 { tracing::warn!("warmer: forecast: {e}"); }
+    if let Err(e) = r4 { tracing::warn!("warmer: flows: {e}"); }
+    tracing::info!("cache warmer: refresh complete");
+}
 #[cfg(test)]
 mod tests {
     use super::*;

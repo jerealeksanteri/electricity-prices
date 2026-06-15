@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use super::{ForecastPoint, FlowPoint, GenerationMix, PricePoint};
+use super::{ForecastPoint, FlowPoint, GenerationMix, GridData, OverviewData, PricePoint};
 
 #[cfg(feature = "server")]
 use chrono::{DateTime, Duration, Utc};
@@ -151,8 +151,9 @@ fn to_sfe(e: impl std::fmt::Display) -> ServerFnError {
 }
 
 #[cfg(feature = "server")]
-async fn sum_dir(
-    cache: &EntsoeCache,
+pub async fn sum_dir(
+    client: &entsoe::Entsoe,
+    token: &str,
     out_d: Domain,
     in_d: Domain,
     start: &PeriodTimestamp,
@@ -167,9 +168,9 @@ async fn sum_dir(
         period_end: PeriodTimestamp(end.0),
         process_type: None,
         psr_type: None,
-        authorization: Authorization::new(cache.token.clone()),
+        authorization: Authorization::new(token.to_string()),
     };
-    match cache.client.get_flows(&params).await {
+    match client.get_flows(&params).await {
         Ok(doc) => latest_flow(&doc),
         Err(_) => 0.0, // e.g. FI-RU "no matching data"
     }
@@ -300,10 +301,25 @@ pub async fn get_cross_border_flows(area: String) -> Result<Vec<FlowPoint>, Serv
     let borders = [("SE3", Domain::SE3), ("EE", Domain::EE), ("NO4", Domain::NO4), ("RU", Domain::RU)];
     let (start, end) = window();
     let now = Utc::now();
+
+    // Fetch all 8 directions in parallel (4 borders × import + export).
+    let futs: Vec<_> = borders
+        .iter()
+        .flat_map(|(_label, nb)| {
+            let s = &start;
+            let e = &end;
+            [
+                sum_dir(&cache.client, &cache.token, *nb, fi, s, e),   // import
+                sum_dir(&cache.client, &cache.token, fi, *nb, s, e),    // export
+            ]
+        })
+        .collect();
+    let results = futures::future::join_all(futs).await;
+
     let mut out = Vec::new();
-    for (label, nb) in borders {
-        let import = sum_dir(&cache, nb, fi, &start, &end).await;
-        let export = sum_dir(&cache, fi, nb, &start, &end).await;
+    for (i, (label, _nb)) in borders.iter().enumerate() {
+        let import = results[i * 2];
+        let export = results[i * 2 + 1];
         let net = import - export; // >0 import into FI
         out.push(FlowPoint {
             from_area: if net >= 0.0 { label.to_string() } else { "FI".to_string() },
@@ -313,6 +329,166 @@ pub async fn get_cross_border_flows(area: String) -> Result<Vec<FlowPoint>, Serv
         });
     }
     cache.put_flows(&area, out.clone()).await;
+    Ok(out)
+}
+
+/// Fetch all Overview page data in a single server round-trip.
+/// Internally runs all four ENTSO-E queries in parallel via `tokio::join!`.
+#[server]
+pub async fn get_overview_data(area: String) -> Result<OverviewData, ServerFnError> {
+    let cache = cache_ctx().await?;
+    let (prices, generation, forecast, flows) = tokio::join!(
+        get_or_fetch_prices(&cache, &area),
+        get_or_fetch_generation(&cache, &area),
+        get_or_fetch_forecast(&cache, &area),
+        get_or_fetch_flows(&cache, &area),
+    );
+    Ok(OverviewData {
+        prices: prices?,
+        generation: generation?,
+        forecast: forecast?,
+        flows: flows?,
+    })
+}
+
+/// Fetch all Grid page data in a single server round-trip.
+#[server]
+pub async fn get_grid_data(area: String) -> Result<GridData, ServerFnError> {
+    let cache = cache_ctx().await?;
+    let (generation, forecast, flows) = tokio::join!(
+        get_or_fetch_generation(&cache, &area),
+        get_or_fetch_forecast(&cache, &area),
+        get_or_fetch_flows(&cache, &area),
+    );
+    Ok(GridData {
+        generation: generation?,
+        forecast: forecast?,
+        flows: flows?,
+    })
+}
+
+// ---------- internal fetch helpers (server-only, used by combined fns) ----------
+
+#[cfg(feature = "server")]
+pub async fn get_or_fetch_prices(
+    cache: &EntsoeCache,
+    area: &str,
+) -> Result<Vec<PricePoint>, ServerFnError> {
+    if let Some(hit) = cache.get_prices(area).await {
+        return Ok(hit);
+    }
+    let d = domain(area)?;
+    let (start, end) = window();
+    let params = RequestParameters {
+        document_type: DocumentType::A44,
+        out_domain: Some(d),
+        in_domain: Some(d),
+        out_bidding_zone_domain: None,
+        period_start: start,
+        period_end: end,
+        process_type: None,
+        psr_type: None,
+        authorization: Authorization::new(cache.token.clone()),
+    };
+    let doc = cache.client.get_prices(&params).await.map_err(to_sfe)?;
+    let mapped = map_prices(&doc).map_err(to_sfe)?;
+    cache.put_prices(area, mapped.clone()).await;
+    Ok(mapped)
+}
+
+#[cfg(feature = "server")]
+pub async fn get_or_fetch_generation(
+    cache: &EntsoeCache,
+    area: &str,
+) -> Result<GenerationMix, ServerFnError> {
+    if let Some(hit) = cache.get_generation(area).await {
+        return Ok(hit);
+    }
+    let d = domain(area)?;
+    let (start, end) = window();
+    let params = RequestParameters {
+        document_type: DocumentType::A75,
+        out_domain: None,
+        in_domain: Some(d),
+        out_bidding_zone_domain: None,
+        period_start: start,
+        period_end: end,
+        process_type: Some(ProcessType::Realised),
+        psr_type: None,
+        authorization: Authorization::new(cache.token.clone()),
+    };
+    let doc = cache.client.get_generation(&params).await.map_err(to_sfe)?;
+    let mapped = map_generation(&doc).map_err(to_sfe)?;
+    cache.put_generation(area, mapped.clone()).await;
+    Ok(mapped)
+}
+
+#[cfg(feature = "server")]
+pub async fn get_or_fetch_forecast(
+    cache: &EntsoeCache,
+    area: &str,
+) -> Result<Vec<ForecastPoint>, ServerFnError> {
+    if let Some(hit) = cache.get_forecast(area).await {
+        return Ok(hit);
+    }
+    let d = domain(area)?;
+    let (start, end) = window();
+    let params = RequestParameters {
+        document_type: DocumentType::A65,
+        out_domain: None,
+        in_domain: None,
+        out_bidding_zone_domain: Some(d),
+        period_start: start,
+        period_end: end,
+        process_type: Some(ProcessType::DayAhead),
+        psr_type: None,
+        authorization: Authorization::new(cache.token.clone()),
+    };
+    let doc = cache.client.get_load_forecast(&params).await.map_err(to_sfe)?;
+    let mapped = map_forecast(&doc).map_err(to_sfe)?;
+    cache.put_forecast(area, mapped.clone()).await;
+    Ok(mapped)
+}
+
+#[cfg(feature = "server")]
+pub async fn get_or_fetch_flows(
+    cache: &EntsoeCache,
+    area: &str,
+) -> Result<Vec<FlowPoint>, ServerFnError> {
+    if let Some(hit) = cache.get_flows(area).await {
+        return Ok(hit);
+    }
+    let fi = domain(area)?;
+    let borders = [("SE3", Domain::SE3), ("EE", Domain::EE), ("NO4", Domain::NO4), ("RU", Domain::RU)];
+    let (start, end) = window();
+    let now = Utc::now();
+
+    let futs: Vec<_> = borders
+        .iter()
+        .flat_map(|(_label, nb)| {
+            let s = &start;
+            let e = &end;
+            [
+                sum_dir(&cache.client, &cache.token, *nb, fi, s, e),
+                sum_dir(&cache.client, &cache.token, fi, *nb, s, e),
+            ]
+        })
+        .collect();
+    let results = futures::future::join_all(futs).await;
+
+    let mut out = Vec::new();
+    for (i, (label, _nb)) in borders.iter().enumerate() {
+        let import = results[i * 2];
+        let export = results[i * 2 + 1];
+        let net = import - export;
+        out.push(FlowPoint {
+            from_area: if net >= 0.0 { label.to_string() } else { "FI".to_string() },
+            to_area: if net >= 0.0 { "FI".to_string() } else { label.to_string() },
+            value_mw: net.abs(),
+            timestamp: now,
+        });
+    }
+    cache.put_flows(area, out.clone()).await;
     Ok(out)
 }
 

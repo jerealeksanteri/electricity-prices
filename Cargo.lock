@@ -3511,6 +3511,7 @@ dependencies = [
  "dioxus",
  "dotenvy",
  "entsoe",
+ "futures",
  "moka",
  "quick-xml",
  "serde",

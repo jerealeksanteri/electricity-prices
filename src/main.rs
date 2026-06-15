@@ -43,6 +43,16 @@ fn server_main() {
 
     let rt = tokio::runtime::Runtime::new().expect("create tokio runtime");
     rt.block_on(async move {
+        // Pre-fetch and continuously refresh cached data in the background so
+        // user requests always hit warm cache entries.
+        let ready = server::cache::spawn_cache_warmer(cache.clone());
+
+        // Wait for the first cache warm to complete before accepting traffic.
+        // This ensures the very first user request hits a warm cache instead of
+        // triggering a duplicate cold-cache fetch.
+        tracing::info!("warming caches before accepting traffic\u{2026}");
+        ready.notified().await;
+
         // Under `dx serve` (dev), the Dioxus CLI assigns the server address and
         // proxies to it — honor that. In production, bind BIND_ADDR when set
         // (the Docker image sets it to 0.0.0.0:8080).

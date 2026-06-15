@@ -2,9 +2,9 @@ use dioxus::prelude::*;
 
 use crate::components::charts::forecast_line::ForecastLine;
 use crate::components::charts::price_chart::PriceChart;
-use crate::components::common::{Card, ErrorBanner, Eyebrow, Skeleton, StatTile};
+use crate::components::common::{Card, ErrorBanner, Eyebrow, RefreshingBanner, Skeleton, StatTile};
 use crate::server::{
-    entso::{get_consumption_forecast, get_cross_border_flows, get_generation_mix, get_spot_prices},
+    entso::get_overview_data,
     FlowPoint, PricePoint, FI_AREA,
 };
 
@@ -31,10 +31,7 @@ fn is_renewable(source: &str) -> bool {
 
 #[component]
 pub fn Overview() -> Element {
-    let prices = use_server_future(|| get_spot_prices(FI_AREA.to_string()))?;
-    let gen_mix = use_server_future(|| get_generation_mix(FI_AREA.to_string()))?;
-    let fc = use_server_future(|| get_consumption_forecast(FI_AREA.to_string()))?;
-    let flows = use_server_future(|| get_cross_border_flows(FI_AREA.to_string()))?;
+    let data = use_resource(|| get_overview_data(FI_AREA.to_string()));
 
     rsx! {
         div { class: "mb-6",
@@ -42,63 +39,51 @@ pub fn Overview() -> Element {
             h1 { class: "mt-1 font-display text-3xl font-bold tracking-tight text-ink", "System overview" }
         }
 
-        // Hero: current spot price.
-        match prices() {
-            Some(Ok(d)) => rsx! { HeroPrice { data: d } },
-            Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-            None => rsx! { Skeleton {} },
-        }
+        match data() {
+            Some(Ok(d)) => rsx! {
+                HeroPrice { data: d.prices.clone() }
 
-        // Quick stats.
-        div { class: "mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4",
-            match gen_mix() {
-                Some(Ok(g)) => {
-                    let total: f64 = g.sources.iter().map(|s| s.value_mw).sum();
-                    let renew: f64 = g.sources.iter().filter(|s| is_renewable(&s.source_type)).map(|s| s.value_mw).sum();
-                    let pct = if total > 0.0 { renew / total * 100.0 } else { 0.0 };
-                    rsx! {
-                        StatTile { label: "Generation now".to_string(), value: format!("{total:.0} MW"), hint: "all sources".to_string() }
-                        StatTile { label: "Renewable share".to_string(), value: format!("{pct:.0}%"), accent: "text-aurora-green".to_string(), hint: format!("{renew:.0} MW renewable") }
+                div { class: "mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4",
+                    {
+                        let total: f64 = d.generation.sources.iter().map(|s| s.value_mw).sum();
+                        let renew: f64 = d.generation.sources.iter().filter(|s| is_renewable(&s.source_type)).map(|s| s.value_mw).sum();
+                        let pct = if total > 0.0 { renew / total * 100.0 } else { 0.0 };
+                        rsx! {
+                            StatTile { label: "Generation now".to_string(), value: format!("{total:.0} MW"), hint: "all sources".to_string() }
+                            StatTile { label: "Renewable share".to_string(), value: format!("{pct:.0}%"), accent: "text-aurora-green".to_string(), hint: format!("{renew:.0} MW renewable") }
+                        }
+                    }
+                    {
+                        let peak = peak_24h(&d.forecast);
+                        rsx! { StatTile { label: "Peak load (24h)".to_string(), value: format!("{peak:.0} MW"), accent: "text-aurora-teal".to_string(), hint: "forecast".to_string() } }
+                    }
+                    {
+                        let net = net_flow(&d.flows);
+                        let (label, accent) = if net >= 0.0 { ("net import", "text-aurora-green") } else { ("net export", "text-aurora-violet") };
+                        rsx! { StatTile { label: "Cross-border".to_string(), value: format!("{:.0} MW", net.abs()), accent: accent.to_string(), hint: label.to_string() } }
                     }
                 }
-                Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                None => rsx! { Skeleton {} },
-            }
-            match fc() {
-                Some(Ok(f)) => {
-                    let peak = peak_24h(&f);
-                    rsx! { StatTile { label: "Peak load (24h)".to_string(), value: format!("{peak:.0} MW"), accent: "text-aurora-teal".to_string(), hint: "forecast".to_string() } }
-                }
-                Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                None => rsx! { Skeleton {} },
-            }
-            match flows() {
-                Some(Ok(fl)) => {
-                    let net = net_flow(&fl);
-                    let (label, accent) = if net >= 0.0 { ("net import", "text-aurora-green") } else { ("net export", "text-aurora-violet") };
-                    rsx! { StatTile { label: "Cross-border".to_string(), value: format!("{:.0} MW", net.abs()), accent: accent.to_string(), hint: label.to_string() } }
-                }
-                Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                None => rsx! { Skeleton {} },
-            }
-        }
 
-        // Charts.
-        div { class: "mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2",
-            Card { title: "Day-ahead prices \u{00B7} c/kWh".to_string(),
-                match prices() {
-                    Some(Ok(d)) => rsx! { PriceChart { data: d } },
-                    Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                    None => rsx! { Skeleton {} },
+                div { class: "mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2",
+                    Card { title: "Day-ahead prices \u{00B7} c/kWh".to_string(),
+                        PriceChart { data: d.prices }
+                    }
+                    Card { title: "Load forecast \u{00B7} MW".to_string(),
+                        ForecastLine { data: d.forecast }
+                    }
                 }
-            }
-            Card { title: "Load forecast \u{00B7} MW".to_string(),
-                match fc() {
-                    Some(Ok(f)) => rsx! { ForecastLine { data: f } },
-                    Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                    None => rsx! { Skeleton {} },
+            },
+            Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
+            None => rsx! {
+                RefreshingBanner {}
+                Skeleton {}
+                div { class: "mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4",
+                    Skeleton {} Skeleton {} Skeleton {} Skeleton {}
                 }
-            }
+                div { class: "mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2",
+                    Skeleton {} Skeleton {}
+                }
+            },
         }
     }
 }

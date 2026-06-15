@@ -3,9 +3,9 @@ use dioxus::prelude::*;
 use crate::components::charts::flow_map::FlowChart;
 use crate::components::charts::forecast_line::ForecastLine;
 use crate::components::charts::generation_pie::GenerationPie;
-use crate::components::common::{Card, ErrorBanner, Eyebrow, Skeleton};
+use crate::components::common::{Card, ErrorBanner, Eyebrow, RefreshingBanner, Skeleton};
 use crate::server::{
-    entso::{get_consumption_forecast, get_cross_border_flows, get_generation_mix},
+    entso::get_grid_data,
     FlowPoint, GenerationMix, FI_AREA,
 };
 
@@ -21,9 +21,7 @@ fn is_renewable(source: &str) -> bool {
 
 #[component]
 pub fn Grid() -> Element {
-    let gen_mix = use_server_future(|| get_generation_mix(FI_AREA.to_string()))?;
-    let fc = use_server_future(|| get_consumption_forecast(FI_AREA.to_string()))?;
-    let flows = use_server_future(|| get_cross_border_flows(FI_AREA.to_string()))?;
+    let data = use_resource(|| get_grid_data(FI_AREA.to_string()));
 
     rsx! {
         div { class: "mb-6",
@@ -31,42 +29,42 @@ pub fn Grid() -> Element {
             h1 { class: "mt-1 font-display text-3xl font-bold tracking-tight text-ink", "Grid & generation" }
         }
 
-        div { class: "grid grid-cols-1 gap-4 lg:grid-cols-5",
-            div { class: "lg:col-span-3",
-                Card { title: "Generation mix \u{00B7} MW".to_string(),
-                    match gen_mix() {
-                        Some(Ok(g)) => rsx! { GenerationPie { data: g } },
-                        Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                        None => rsx! { Skeleton {} },
+        match data() {
+            Some(Ok(d)) => rsx! {
+                div { class: "grid grid-cols-1 gap-4 lg:grid-cols-5",
+                    div { class: "lg:col-span-3",
+                        Card { title: "Generation mix \u{00B7} MW".to_string(),
+                            GenerationPie { data: d.generation.clone() }
+                        }
+                    }
+                    div { class: "lg:col-span-2",
+                        Card { title: "By source".to_string(),
+                            SourceList { data: d.generation }
+                        }
                     }
                 }
-            }
-            div { class: "lg:col-span-2",
-                Card { title: "By source".to_string(),
-                    match gen_mix() {
-                        Some(Ok(g)) => rsx! { SourceList { data: g } },
-                        Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                        None => rsx! { Skeleton {} },
-                    }
-                }
-            }
-        }
 
-        div { class: "mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2",
-            Card { title: "Load forecast \u{00B7} MW".to_string(),
-                match fc() {
-                    Some(Ok(f)) => rsx! { ForecastLine { data: f } },
-                    Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                    None => rsx! { Skeleton {} },
+                div { class: "mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2",
+                    Card { title: "Load forecast \u{00B7} MW".to_string(),
+                        ForecastLine { data: d.forecast }
+                    }
+                    Card { title: "Cross-border flows \u{00B7} MW".to_string(),
+                        FlowChart { data: d.flows.clone() }
+                        FlowTable { data: d.flows }
+                    }
                 }
-            }
-            Card { title: "Cross-border flows \u{00B7} MW".to_string(),
-                match flows() {
-                    Some(Ok(fl)) => rsx! { FlowChart { data: fl.clone() } FlowTable { data: fl } },
-                    Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-                    None => rsx! { Skeleton {} },
+            },
+            Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
+            None => rsx! {
+                RefreshingBanner {}
+                div { class: "grid grid-cols-1 gap-4 lg:grid-cols-5",
+                    div { class: "lg:col-span-3", Skeleton {} }
+                    div { class: "lg:col-span-2", Skeleton {} }
                 }
-            }
+                div { class: "mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2",
+                    Skeleton {} Skeleton {}
+                }
+            },
         }
     }
 }

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::components::charts::price_chart::PriceChart;
-use crate::components::common::{Card, ErrorBanner, Eyebrow, Skeleton, StatTile};
+use crate::components::common::{Card, ErrorBanner, Eyebrow, RefreshingBanner, Skeleton, StatTile};
 use crate::server::{entso::get_prices_range, PricePoint, FI_AREA};
 
 const PRESETS: [&str; 4] = ["Today", "Tomorrow", "7 days", "30 days"];
@@ -51,7 +51,7 @@ pub fn Prices() -> Element {
     let mut end = use_signal(default_end);
     let mut preset = use_signal(|| "Today".to_string());
 
-    let data = use_server_future(move || get_prices_range(FI_AREA.to_string(), start(), end()))?;
+    let data = use_resource(move || get_prices_range(FI_AREA.to_string(), start(), end()));
 
     let start_date = ts_to_date_str(start());
     let end_date = ts_to_date_str(end() - 86_400); // show inclusive last day
@@ -60,6 +60,10 @@ pub fn Prices() -> Element {
         div { class: "mb-6",
             Eyebrow { text: "Day-ahead market \u{00B7} ENTSO-E A44".to_string() }
             h1 { class: "mt-1 font-display text-3xl font-bold tracking-tight text-ink", "Electricity prices" }
+        }
+
+        if data().is_none() {
+            RefreshingBanner {}
         }
 
         // Timeframe controls
@@ -124,7 +128,7 @@ pub fn Prices() -> Element {
                 }
             },
             Some(Err(e)) => rsx! { ErrorBanner { msg: e.to_string() } },
-            None => rsx! { Skeleton {} },
+            None => rsx! { RefreshingBanner {} Skeleton {} },
         }
     }
 }

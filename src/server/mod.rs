@@ -46,6 +46,23 @@ pub struct FlowPoint {
 /// Default Finnish bidding zone EIC.
 pub const FI_AREA: &str = "10YFI-1--------U";
 
+/// All data needed by the Overview page, fetched in a single server round-trip.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct OverviewData {
+    pub prices: Vec<PricePoint>,
+    pub generation: GenerationMix,
+    pub forecast: Vec<ForecastPoint>,
+    pub flows: Vec<FlowPoint>,
+}
+
+/// All data needed by the Grid page, fetched in a single server round-trip.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct GridData {
+    pub generation: GenerationMix,
+    pub forecast: Vec<ForecastPoint>,
+    pub flows: Vec<FlowPoint>,
+}
+
 #[cfg(feature = "server")]
 #[derive(Debug, thiserror::Error)]
 pub enum ServerError {
