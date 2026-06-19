@@ -48,8 +48,11 @@ pub struct TimeSeries {
     pub price_measure_unit: String,
     #[serde(rename = "curveType")]
     pub curve_type: String,
-    #[serde(rename = "Period")]
-    pub period: Period,
+    /// ENTSO-E can emit more than one `<Period>` per `<TimeSeries>` (e.g. the
+    /// PT60M→PT15M market-time-unit transition, or DST-spanning days), so this
+    /// must be a collection rather than a single value.
+    #[serde(rename = "Period", default)]
+    pub periods: Vec<Period>,
 }
 
 #[derive(Debug, Deserialize)]

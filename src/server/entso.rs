@@ -54,19 +54,25 @@ fn point_time(start: DateTime<Utc>, position: u32, res_min: i64) -> DateTime<Utc
 pub fn map_prices(doc: &PublicationMarketDocument) -> Result<Vec<PricePoint>, ServerError> {
     let mut out = Vec::new();
     for ts in &doc.time_series {
-        let start = parse_start(&ts.period.time_interval.start)?;
-        let res = resolution_minutes(&ts.period.resolution);
-        for p in &ts.period.points {
-            out.push(PricePoint {
-                timestamp: point_time(start, p.position, res),
-                price_eur_mwh: p.price_amount,
-            });
+        for period in &ts.periods {
+            let start = parse_start(&period.time_interval.start)?;
+            let res = resolution_minutes(&period.resolution);
+            for p in &period.points {
+                out.push(PricePoint {
+                    timestamp: point_time(start, p.position, res),
+                    price_eur_mwh: p.price_amount,
+                });
+            }
         }
     }
     if out.is_empty() {
         return Err(ServerError::NoData("prices".into()));
     }
     out.sort_by_key(|p| p.timestamp);
+    // A single TimeSeries may carry overlapping Periods at different resolutions
+    // (e.g. PT60M and PT15M covering the same window during the MTU transition);
+    // collapse duplicate timestamps so the chart shows one value per instant.
+    out.dedup_by_key(|p| p.timestamp);
     Ok(out)
 }
 
@@ -75,17 +81,25 @@ pub fn map_generation(doc: &GlMarketDocument) -> Result<GenerationMix, ServerErr
     let mut latest_ts: Option<DateTime<Utc>> = None;
     let mut sources: Vec<GenerationSource> = Vec::new();
     for ts in &doc.time_series {
-        let start = parse_start(&ts.period.time_interval.start)?;
-        let res = resolution_minutes(&ts.period.resolution);
-        let Some(last) = ts.period.points.last() else { continue };
-        let t = point_time(start, last.position, res);
+        // Pick the most recent point across every Period in this TimeSeries.
+        let mut latest: Option<(DateTime<Utc>, f64)> = None;
+        for period in &ts.periods {
+            let start = parse_start(&period.time_interval.start)?;
+            let res = resolution_minutes(&period.resolution);
+            let Some(last) = period.points.last() else { continue };
+            let t = point_time(start, last.position, res);
+            if latest.map_or(true, |(cur, _)| t >= cur) {
+                latest = Some((t, last.quantity));
+            }
+        }
+        let Some((t, quantity)) = latest else { continue };
         latest_ts = Some(latest_ts.map_or(t, |cur| cur.max(t)));
         let name = ts
             .mkt_psr_type
             .as_ref()
             .map(|m| PsrType::from_code(&m.psr_type).name().to_string())
             .unwrap_or_else(|| "Other".to_string());
-        sources.push(GenerationSource { source_type: name, value_mw: last.quantity });
+        sources.push(GenerationSource { source_type: name, value_mw: quantity });
     }
     let timestamp = latest_ts.ok_or_else(|| ServerError::NoData("generation".into()))?;
     sources.sort_by(|a, b| b.value_mw.partial_cmp(&a.value_mw).unwrap_or(std::cmp::Ordering::Equal));
@@ -96,16 +110,19 @@ pub fn map_generation(doc: &GlMarketDocument) -> Result<GenerationMix, ServerErr
 pub fn map_forecast(doc: &GlMarketDocument) -> Result<Vec<ForecastPoint>, ServerError> {
     let mut out = Vec::new();
     for ts in &doc.time_series {
-        let start = parse_start(&ts.period.time_interval.start)?;
-        let res = resolution_minutes(&ts.period.resolution);
-        for p in &ts.period.points {
-            out.push(ForecastPoint { timestamp: point_time(start, p.position, res), value_mw: p.quantity });
+        for period in &ts.periods {
+            let start = parse_start(&period.time_interval.start)?;
+            let res = resolution_minutes(&period.resolution);
+            for p in &period.points {
+                out.push(ForecastPoint { timestamp: point_time(start, p.position, res), value_mw: p.quantity });
+            }
         }
     }
     if out.is_empty() {
         return Err(ServerError::NoData("forecast".into()));
     }
     out.sort_by_key(|p| p.timestamp);
+    out.dedup_by_key(|p| p.timestamp);
     Ok(out)
 }
 
@@ -117,7 +134,8 @@ pub fn map_forecast(doc: &GlMarketDocument) -> Result<Vec<ForecastPoint>, Server
 pub fn latest_flow(doc: &FlowMarketDocument) -> f64 {
     doc.time_series
         .last()
-        .and_then(|ts| ts.period.points.last())
+        .and_then(|ts| ts.periods.last())
+        .and_then(|period| period.points.last())
         .map(|p| p.quantity)
         .unwrap_or(0.0)
 }
