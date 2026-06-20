@@ -1,0 +1,70 @@
+name: ✨ Feature Request
+description: Suggest a new feature or improvement for Voltti.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make Voltti better! 🚀
+
+        Please search the [existing issues](../) first to make sure this hasn't
+        already been requested.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the problem or limitation you are running into. Focus on the "why".
+      placeholder: As a user, I can't see how today's prices compare to the previous day, so it's hard to judge whether prices are high.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to happen.
+      placeholder: Add a previous-day price line overlay on the day-ahead chart.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Related area
+      description: Which part of Voltti would this affect?
+      options:
+        - Day-ahead spot prices
+        - Generation mix
+        - Load forecast
+        - Cross-border flows
+        - ENTSO-E data integration
+        - UI / UX
+        - Build / tooling / deployment
+        - New data source or domain
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or workarounds you've thought about.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add mockups, links, ENTSO-E API references, or anything else that helps.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I'd be willing to help implement this feature.
+          required: false

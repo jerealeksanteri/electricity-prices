@@ -1,0 +1,61 @@
+name: 📋 Task
+description: A concrete, actionable piece of work (chore, refactor, docs, tooling).
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for well-defined work that isn't a user-facing feature or a bug —
+        for example refactors, dependency bumps, documentation, CI, or test coverage.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Task description
+      description: Clearly describe what needs to be done.
+      placeholder: Refactor the ENTSO-E XML parsing in `entsoe/` into smaller, testable functions.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type of work
+      options:
+        - Refactor
+        - Documentation
+        - Tests
+        - CI / CD / tooling
+        - Dependency update
+        - Performance
+        - Cleanup / chore
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How do we know this task is done? List concrete, checkable outcomes.
+      placeholder: |
+        - [ ] Parsing logic split into dedicated functions
+        - [ ] Unit tests cover the happy path and malformed XML
+        - [ ] `cargo test` passes
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links, related issues, affected files, or anything else useful.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
