@@ -33,7 +33,7 @@ pub fn Grid() -> Element {
             Some(Ok(d)) => rsx! {
                 div { class: "grid grid-cols-1 gap-4 lg:grid-cols-5",
                     div { class: "lg:col-span-3",
-                        Card { title: "Generation mix \u{00B7} MW".to_string(),
+                        Card { title: "Generation mix \u{00B7} MW \u{00B7} %".to_string(),
                             GenerationPie { data: d.generation.clone() }
                         }
                     }
@@ -71,6 +71,7 @@ pub fn Grid() -> Element {
 
 #[component]
 fn SourceList(data: GenerationMix) -> Element {
+    let total: f64 = data.sources.iter().map(|s| s.value_mw).sum();
     let max = data
         .sources
         .iter()
@@ -81,6 +82,7 @@ fn SourceList(data: GenerationMix) -> Element {
         div { class: "space-y-3",
             for s in data.sources {
                 {
+                    let share = if total > 0.0 { s.value_mw / total * 100.0 } else { 0.0 };
                     let pct = (s.value_mw / max * 100.0).clamp(0.0, 100.0);
                     let bar = format!("width:{pct:.1}%");
                     let color = if is_renewable(&s.source_type) { "bg-aurora-green" } else { "bg-aurora-teal" };
@@ -88,7 +90,7 @@ fn SourceList(data: GenerationMix) -> Element {
                         div {
                             div { class: "flex items-baseline justify-between text-sm",
                                 span { class: "text-muted", "{s.source_type}" }
-                                span { class: "readout text-ink", {format!("{:.0} MW", s.value_mw)} }
+                                span { class: "readout text-ink", {format!("{:.0} MW \u{00B7} {:.1}%", s.value_mw, share)} }
                             }
                             div { class: "mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-elevated",
                                 div { class: "h-full rounded-full {color}", style: "{bar}" }
