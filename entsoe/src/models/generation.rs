@@ -22,8 +22,11 @@ pub struct GlTimeSeries {
     pub business_type: String,
     #[serde(rename = "MktPSRType", default)]
     pub mkt_psr_type: Option<MktPsrType>,
-    #[serde(rename = "Period")]
-    pub period: GlPeriod,
+    /// ENTSO-E can emit more than one `<Period>` per `<TimeSeries>` (e.g. the
+    /// PT60M→PT15M market-time-unit transition, or DST-spanning days), so this
+    /// must be a collection rather than a single value.
+    #[serde(rename = "Period", default)]
+    pub periods: Vec<GlPeriod>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,6 +77,6 @@ mod tests {
         assert_eq!(doc.time_series.len(), 1);
         let ts = &doc.time_series[0];
         assert_eq!(ts.mkt_psr_type.as_ref().unwrap().psr_type, "B14");
-        assert_eq!(ts.period.points[0].quantity, 2400.0);
+        assert_eq!(ts.periods[0].points[0].quantity, 2400.0);
     }
 }

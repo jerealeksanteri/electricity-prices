@@ -1,0 +1,96 @@
+name: 🐛 Bug Report
+description: Report something in Voltti that is broken or not behaving as expected.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! 🙏
+
+        Please search the [existing issues](../) first to avoid duplicates.
+        The more detail you give us, the faster we can fix it.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: When I open the day-ahead price chart, the prices show as blank instead of c/kWh values.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      description: Describe the behaviour you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Step-by-step instructions so we can reproduce the problem.
+      placeholder: |
+        1. Run `dx serve`
+        2. Open http://localhost:8080
+        3. Click on the generation mix tab
+        4. See the error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of Voltti is affected?
+      options:
+        - Day-ahead spot prices
+        - Generation mix
+        - Load forecast
+        - Cross-border flows
+        - ENTSO-E data fetching / parsing
+        - UI / styling
+        - Build / tooling (Cargo, Dioxus, Docker)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: How are you running Voltti?
+      options:
+        - Local dev (`dx serve`)
+        - Docker container
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: |
+        Paste any relevant console output, server logs, or screenshots.
+        This will be automatically formatted as code, so no backticks needed.
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Which version or git commit are you on? (e.g. output of `git rev-parse --short HEAD`)
+      placeholder: e.g. v0.1.0 or a1b2c3d
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I can reproduce this bug consistently.
+          required: false
