@@ -21,7 +21,15 @@ impl Entsoe {
             .collect::<Vec<_>>()
             .join("&");
         let url = format!("{}?{}", self.base_url(), url_query);
-        debug!("request_doc url = {}", url);
+        // Never log the security token.
+        let redacted_query = params
+            .to_params()
+            .into_iter()
+            .filter(|(k, _)| *k != "securityToken")
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<_>>()
+            .join("&");
+        debug!("request_doc url = {}?{}&securityToken=<redacted>", self.base_url(), redacted_query);
 
         let text = self
             .http()

@@ -163,9 +163,15 @@ fn domain(area: &str) -> Result<Domain, ServerFnError> {
     Domain::from_str(area).map_err(|_| ServerFnError::new(format!("unknown area {area}")))
 }
 
+/// Convert an internal error into a client-facing `ServerFnError`.
+///
+/// Error text is sent verbatim to the browser, so internal/upstream details
+/// (which may include request URLs or other secrets) are logged server-side
+/// only and the client receives a generic message.
 #[cfg(feature = "server")]
 fn to_sfe(e: impl std::fmt::Display) -> ServerFnError {
-    ServerFnError::new(e.to_string())
+    tracing::warn!("server function error: {e}");
+    ServerFnError::new("failed to load data from ENTSO-E — please try again later")
 }
 
 #[cfg(feature = "server")]
